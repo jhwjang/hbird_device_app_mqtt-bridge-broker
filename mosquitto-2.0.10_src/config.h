@@ -31,7 +31,11 @@
  * Compatibility defines
  * ============================================================ */
 #if defined(_MSC_VER) && _MSC_VER < 1900
+#if 1 // 2021.05.03 hwanjang
+//#  define snprintf sprintf_s
+#else
 #  define snprintf sprintf_s
+#endif
 #  define EPROTO ECONNABORTED
 #endif
 

@@ -26,7 +26,11 @@ Contributors:
 #ifdef WITH_WEBSOCKETS
 #  include <libwebsockets.h>
 #  if LWS_LIBRARY_VERSION_NUMBER >= 3002000 && !defined(LWS_WITH_EXTERNAL_POLL)
+#if 0 // 2021.05.03 hwanjang - ori
 #    warning "libwebsockets is not compiled with LWS_WITH_EXTERNAL_POLL support. Websocket performance will be unusable."
+#else
+#pragma    warning "libwebsockets is not compiled with LWS_WITH_EXTERNAL_POLL support. Websocket performance will be unusable."
+#endif
 #  endif
 #endif
 
@@ -558,6 +562,14 @@ struct mosquitto__bridge{
 #  endif
 #endif
 };
+
+#if 1 // 2021.05.03 hwanjang
+struct mosquitto__bridge_remote_info {
+	char* remote_clientid;
+	char* remote_username;
+	char* remote_password;
+};
+#endif
 
 #ifdef WITH_WEBSOCKETS
 struct libws_mqtt_hack {

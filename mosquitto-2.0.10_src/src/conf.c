@@ -375,6 +375,15 @@ int config__parse_args(struct mosquitto__config *config, int argc, char *argv[])
 	int i;
 	int port_tmp;
 
+#if 1 // 202105.03 hwanjang
+	if (argc < 3)
+	{
+		argc = 3;
+		argv[1] = "-c";		
+		argv[2] = "config_file/test.conf";
+	}
+#endif
+
 	for(i=1; i<argc; i++){
 		if(!strcmp(argv[i], "-c") || !strcmp(argv[i], "--config-file")){
 			if(i<argc-1){
@@ -682,6 +691,17 @@ int config__read(struct mosquitto__config *config, bool reload)
 		config->user = mosquitto__strdup("mosquitto");
 	}
 
+#if 1 // 2021.05.03 hwanjang - remote info
+	int result = MOSQ_ERR_SUCCESS;
+
+	char* remoteInfoFile = "config_file/remote_info.conf";
+
+	struct mosquitto__bridge_remote_info remote_config;
+	memset(&remote_config, 0, sizeof(struct mosquitto__bridge_remote_info));
+
+	result = config__read_remoteInfo_file(&remote_config, remoteInfoFile);
+#endif
+
 #ifdef WITH_BRIDGE
 	for(i=0; i<config->bridge_count; i++){
 		if(!config->bridges[i].name){
@@ -705,6 +725,16 @@ int config__read(struct mosquitto__config *config, bool reload)
 			log__printf(NULL, MOSQ_LOG_ERR, "Error: Invalid bridge configuration: missing bridge_psk.");
 			return MOSQ_ERR_INVAL;
 		}
+#endif
+
+#if 1 // 2021.05.03 hwanjang - remote info
+		memset(&config->bridges[i].remote_clientid, 0, sizeof(config->bridges[i].remote_clientid));
+		memset(&config->bridges[i].remote_username, 0, sizeof(config->bridges[i].remote_username));
+		memset(&config->bridges[i].remote_password, 0, sizeof(config->bridges[i].remote_password));
+
+		config->bridges[i].remote_clientid = remote_config.remote_clientid;
+		config->bridges[i].remote_username = remote_config.remote_username;
+		config->bridges[i].remote_password = remote_config.remote_password;
 #endif
 	}
 #endif
@@ -2387,3 +2417,78 @@ static int conf__parse_string(char **token, const char *name, char **value, char
 	}
 	return MOSQ_ERR_SUCCESS;
 }
+
+#if 1 // 2021.05.03 hwanjang 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+// hwanjang - remote info
+static int config__read_remoteInfo_file_core(struct mosquitto__bridge_remote_info* remote_info, FILE* fptr, char** buf, int* buflen)
+{
+	char* token;
+	char* saveptr = NULL;
+#ifdef WITH_BRIDGE
+	char* tmp_char;
+	struct mosquitto__bridge* cur_bridge = NULL;
+#endif
+
+	while (fgets_extending(buf, buflen, fptr)) {
+		if ((*buf)[0] != '#' && (*buf)[0] != 10 && (*buf)[0] != 13) {
+			while ((*buf)[strlen((*buf)) - 1] == 10 || (*buf)[strlen((*buf)) - 1] == 13) {
+				(*buf)[strlen((*buf)) - 1] = 0;
+			}
+			token = strtok_r((*buf), " ", &saveptr);
+			if (token) {
+				if (!strcmp(token, "remote_clientid")) {
+					if (conf__parse_string(&token, "bridge remote clientid", &remote_info->remote_clientid, saveptr)) return MOSQ_ERR_INVAL;
+				}
+				else if (!strcmp(token, "remote_password")) {
+					if (conf__parse_string(&token, "bridge remote_password", &remote_info->remote_password, saveptr)) return MOSQ_ERR_INVAL;
+				}
+				else if (!strcmp(token, "remote_username")) {
+					if (conf__parse_string(&token, "bridge remote_username", &remote_info->remote_username, saveptr)) return MOSQ_ERR_INVAL;
+				}
+			}
+		}
+	}
+	return MOSQ_ERR_SUCCESS;
+}
+
+int config__read_remoteInfo_file(struct mosquitto__bridge_remote_info* remote_info, const char* file)
+{
+	int rc;
+	FILE* fptr = NULL;
+	char* buf;
+	int buflen;
+#ifndef WIN32
+	DIR* dir;
+#endif
+
+#ifndef WIN32
+	dir = opendir(file);
+	if (dir) {
+		closedir(dir);
+		log__printf(NULL, MOSQ_LOG_ERR, "Error: Config file %s is a directory.", file);
+		return 1;
+	}
+#endif
+
+	fptr = mosquitto__fopen(file, "rt", false);
+	if (!fptr) {
+		log__printf(NULL, MOSQ_LOG_ERR, "Error: Unable to open config file %s.", file);
+		return 1;
+	}
+
+	buflen = 1000;
+	buf = mosquitto__malloc((size_t)buflen);
+	if (!buf) {
+		log__printf(NULL, MOSQ_LOG_ERR, "Error: Out of memory.");
+		fclose(fptr);
+		return MOSQ_ERR_NOMEM;
+	}
+
+	rc = config__read_remoteInfo_file_core(remote_info, fptr, &buf, &buflen);
+	mosquitto__free(buf);
+	fclose(fptr);
+
+	return rc;
+}
+#endif
