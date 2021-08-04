@@ -1,0 +1,29 @@
+
+cmake -G "NMake Makefiles" -B build_nmake -A "Win32" -DCMAKE_CONFIGURATION_TYPES="DEBUG;Release" -DWITH_STATIC_LIBRARIES=ON -DOPENSSL_ROOT_DIR=../../third_party/openssl-OpenSSL_1_1_1i -DOPENSSL_INCLUDE_DIR=../../third_party/openssl-OpenSSL_1_1_1i/include -DSSL_EAY_DEBUG=../../third_party/openssl-OpenSSL_1_1_1i/lib/windows/debug/libssl.lib -DLIB_EAY_DEBUG=../../third_party/openssl-OpenSSL_1_1_1i/lib/windows/debug/libcrypto.lib -DWITH_THREADING=OFF -DWITH_APPS=OFF
+
+
+cmake CMakeLists.txt -G "Visual Studio 16 2019" -B build_vs2019_noThreading -A "Win32" -DCMAKE_CONFIGURATION_TYPES="DEBUG;Release" -DWITH_STATIC_LIBRARIES=ON -DOPENSSL_ROOT_DIR=../../third_party/openssl-OpenSSL_1_1_1i -DOPENSSL_INCLUDE_DIR=../../third_party/openssl-OpenSSL_1_1_1i/include -DSSL_EAY_DEBUG=../../third_party/openssl-OpenSSL_1_1_1i/lib/windows/debug/libssl.lib -DLIB_EAY_DEBUG=../../third_party/openssl-OpenSSL_1_1_1i/lib/windows/debug/libcrypto.lib -DWITH_THREADING=OFF -DWITH_APPS=OFF
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [ 21.07.07 ] windows - G "Visual Studio 16 2019"
+
+cmake mosquitto-2.0.10_src/CMakeLists.txt -G "Visual Studio 16 2019" -B build_vs2019_noThreading -A "Win32" -DCMAKE_CONFIGURATION_TYPES="DEBUG;Release" -DWITH_STATIC_LIBRARIES=ON -DOPENSSL_ROOT_DIR=D:/Work/visualstudio_repos/work_for_release/iothub_mqtt_bridge_broker_Project/hbird_device_app_mqtt-bridge-broker/third_party/openssl-OpenSSL_1_1_1i/lib/windows/debug -DOPENSSL_INCLUDE_DIR=D:/Work/visualstudio_repos/work_for_release/iothub_mqtt_bridge_broker_Project/hbird_device_app_mqtt-bridge-broker/third_party/openssl-OpenSSL_1_1_1i/include -DSSL_EAY_DEBUG=D:/Work/visualstudio_repos/work_for_release/iothub_mqtt_bridge_broker_Project/hbird_device_app_mqtt-bridge-broker/third_party/openssl-OpenSSL_1_1_1i/lib/windows/debug/libssl.lib -DLIB_EAY_DEBUG=D:/Work/visualstudio_repos/work_for_release/iothub_mqtt_bridge_broker_Project/hbird_device_app_mqtt-bridge-broker/third_party/openssl-OpenSSL_1_1_1i/lib/windows/debug/libcrypto.lib -DSSL_EAY_RELEASE=D:/Work/visualstudio_repos/work_for_release/iothub_mqtt_bridge_broker_Project/hbird_device_app_mqtt-bridge-broker/third_party/openssl-OpenSSL_1_1_1i/lib/windows/release/libssl.lib -DLIB_EAY_RELEASE=D:/Work/visualstudio_repos/work_for_release/iothub_mqtt_bridge_broker_Project/hbird_device_app_mqtt-bridge-broker/third_party/openssl-OpenSSL_1_1_1i/lib/windows/release/libcrypto.lib -DWITH_THREADING=OFF -DWITH_APPS=OFF
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [ 21.07.19 ] linux
+
+1. cmd
+cmake -Bbuild_linux -Hmosquitto-2.0.10_src -DOPENSSL_ROOT_DIR=/home/hwanjang/work/third_party_lib/lib_all_linux/openssl-OpenSSL_1_1_1i/ -DOPENSSL_INCLUDE_DIR=/home/hwanjang/work/third_party_lib/lib_all_linux/openssl-OpenSSL_1_1_1i/include/ -DWITH_THREADING=OFF -DWITH_APPS=OFF -DCMAKE_INSTALL_PREFIX=build_linux/_install
+
+2. cmake --build build_linux --target install
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------
+ [ 21.07.30 ] arm
+
+cmake -Bbuild_arm -Hmosquitto-2.0.10_src -DOPENSSL_ROOT_DIR=${HOME}/work/third_party_lib/lib_all_arm/openssl-OpenSSL_1_1_1i/ -DOPENSSL_INCLUDE_DIR=${HOME}/work/third_party_lib/lib_all_arm/openssl-OpenSSL_1_1_1i/include/ -DWITH_THREADING=OFF -DWITH_APPS=OFF -DCMAKE_INSTALL_PREFIX=build_arm_test/_install -DCMAKE_C_COMPILER=$HOME/work/camera_p_cv2_toolchain/toolchain/linaro-2018.08/armv8/aarch64/linaro-aarch64-2018.08-gcc8.2/bin/aarch64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=$HOME/work/camera_p_cv2_toolchain/toolchain/linaro-2018.08/armv8/aarch64/linaro-aarch64-2018.08-gcc8.2/bin/aarch64-linux-gnu-g++
+
+
+
