@@ -1,0 +1,61 @@
+cmake CMakeLists.txt -G "Unix Makefiles" -DOPENSSL_ROOT_DIR=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/root_dir -DOPENSSL_INCLUDE_DIR=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/third_party/openssl-OpenSSL_1_1_1i/include -DOPENSSL_LIBRARIES=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/third_party/openssl-OpenSSL_1_1_1i/lib/linux -DOPENSSL_CRYPTO_LIBRARY=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/third_party/openssl-OpenSSL_1_1_1i/lib/linux/libcrypto.so -DOPENSSL_SSL_LIBRARY=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/third_party/openssl-OpenSSL_1_1_1i/lib/linux/libssl.so -DWITH_THREADING=OFF -DWITH_APPS=OFF -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ 
+
+/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work
+
+
+
+hwanjang@hwanjang-VirtualBox:~/work/mosquitto-2.0.10/mosquitto-2.0.10_work/mosquitto-2.0.10_src$ cmake CMakeLists.txt -G "Unix Makefiles" -DOPENSSL_ROOT_DIR=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/root_dir -DOPENSSL_INCLUDE_DIR=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/third_party/openssl-OpenSSL_1_1_1i/include -DOPENSSL_LIBRARIES=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/third_party/openssl-OpenSSL_1_1_1i/lib/linux -DOPENSSL_CRYPTO_LIBRARY=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/third_party/openssl-OpenSSL_1_1_1i/lib/linux/libcrypto.so -DOPENSSL_SSL_LIBRARY=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/third_party/openssl-OpenSSL_1_1_1i/lib/linux/libssl.so -DWITH_THREADING=OFF -DWITH_APPS=OFF -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ 
+-- The C compiler identification is GNU 7.5.0
+-- The CXX compiler identification is GNU 7.5.0
+-- Check for working C compiler: /usr/bin/gcc
+-- Check for working C compiler: /usr/bin/gcc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Check for working CXX compiler: /usr/bin/g++
+-- Check for working CXX compiler: /usr/bin/g++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found OpenSSL: /home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/third_party/openssl-OpenSSL_1_1_1i/lib/linux/libcrypto.so (found version "1.1.1i") 
+-- WITH_DLT = OFF
+-- Could NOT find cJSON (missing: CJSON_INCLUDE_DIR CJSON_LIBRARY) 
+-- Optional dependency cJSON not found. Some features will be disabled.
+-- Looking for getaddrinfo_a in anl
+-- Looking for getaddrinfo_a in anl - found
+CMake Error at man/CMakeLists.txt:29 (message):
+  xsltproc not found: manpages cannot be built
+
+
+-- Configuring incomplete, errors occurred!
+See also "/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/mosquitto-2.0.10_src/CMakeFiles/CMakeOutput.log".
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+빌드준비
+빌드 중간에 man page 를 만들기위한 패키지들이 있다.
+
+다음의 패키지를 설치해준다.
+
+sudo apt-get install xsltproc docbook-xsl 
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+[최종 - 21.07.16 - ubuntu 18.04]
+
+cmake CMakeLists.txt -DOPENSSL_ROOT_DIR=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/root_dir -DOPENSSL_INCLUDE_DIR=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/third_party/openssl-OpenSSL_1_1_1i/include -DOPENSSL_LIBRARIES=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/third_party/openssl-OpenSSL_1_1_1i/lib/linux -DOPENSSL_CRYPTO_LIBRARY=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/third_party/openssl-OpenSSL_1_1_1i/lib/linux/libcrypto.so -DOPENSSL_SSL_LIBRARY=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/third_party/openssl-OpenSSL_1_1_1i/lib/linux/libssl.so -DWITH_THREADING=OFF -DWITH_APPS=OFF -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ 
+-- WITH_DLT = OFF
+-- Could NOT find cJSON (missing: CJSON_INCLUDE_DIR CJSON_LIBRARY) 
+-- Optional dependency cJSON not found. Some features will be disabled.
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/mosquitto-2.0.10_src
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+21.07.21
+cmake -Bbuild_linux -Hmosquitto-2.0.10 -DOPENSSL_ROOT_DIR=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/root_dir -DOPENSSL_INCLUDE_DIR=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/third_party/openssl-OpenSSL_1_1_1i/include -DOPENSSL_LIBRARIES=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/third_party/openssl-OpenSSL_1_1_1i/lib/linux -DOPENSSL_CRYPTO_LIBRARY=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/third_party/openssl-OpenSSL_1_1_1i/lib/linux/libcrypto.so -DOPENSSL_SSL_LIBRARY=/home/hwanjang/work/mosquitto-2.0.10/mosquitto-2.0.10_work/third_party/openssl-OpenSSL_1_1_1i/lib/linux/libssl.so -DWITH_THREADING=OFF -DWITH_APPS=OFF -DCMAKE_INSTALL_PREFIX=build_linux/_install 
+
+cmake --build build_linux --target install
+
