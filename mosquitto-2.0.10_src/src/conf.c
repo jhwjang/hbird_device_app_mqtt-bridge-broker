@@ -380,7 +380,7 @@ int config__parse_args(struct mosquitto__config *config, int argc, char *argv[])
 	{
 		argc = 3;
 		argv[1] = "-c";		
-		argv[2] = "config_file/test.conf";
+		argv[2] = "config/test.conf";
 	}
 #endif
 
@@ -694,7 +694,7 @@ int config__read(struct mosquitto__config *config, bool reload)
 #if 1 // 2021.05.03 hwanjang - remote info
 	int result = MOSQ_ERR_SUCCESS;
 
-	char* remoteInfoFile = "config_file/remote_info.conf";
+	char* remoteInfoFile = "config/remote_info.conf";
 
 	struct mosquitto__bridge_remote_info remote_config;
 	memset(&remote_config, 0, sizeof(struct mosquitto__bridge_remote_info));
