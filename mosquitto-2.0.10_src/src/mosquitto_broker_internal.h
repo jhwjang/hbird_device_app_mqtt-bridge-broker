@@ -565,6 +565,8 @@ struct mosquitto__bridge{
 
 #if 1 // 2021.05.03 hwanjang
 struct mosquitto__bridge_remote_info {
+	uint16_t port;
+	char* remote_address;	
 	char* remote_clientid;
 	char* remote_username;
 	char* remote_password;

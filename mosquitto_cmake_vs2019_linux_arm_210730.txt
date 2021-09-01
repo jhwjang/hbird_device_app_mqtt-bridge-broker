@@ -21,7 +21,7 @@ cmake -Bbuild_linux -Hmosquitto-2.0.10_src -DOPENSSL_ROOT_DIR=/home/hwanjang/wor
 
 
 ---------------------------------------------------------------------------------------------------------------------------------------------------
- [ 21.07.30 ] arm - ${HOME} È°¿ë
+ [ 21.07.30 ] arm - ${HOME}
 
 cmake -Bbuild_arm -Hmosquitto-2.0.10_src -DOPENSSL_ROOT_DIR=${HOME}/work/third_party_lib/lib_all_arm/openssl-OpenSSL_1_1_1i/ -DOPENSSL_INCLUDE_DIR=${HOME}/work/third_party_lib/lib_all_arm/openssl-OpenSSL_1_1_1i/include/ -DWITH_THREADING=OFF -DWITH_APPS=OFF -DCMAKE_INSTALL_PREFIX=build_arm_test/_install -DCMAKE_C_COMPILER=$HOME/work/camera_p_cv2_toolchain/toolchain/linaro-2018.08/armv8/aarch64/linaro-aarch64-2018.08-gcc8.2/bin/aarch64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=$HOME/work/camera_p_cv2_toolchain/toolchain/linaro-2018.08/armv8/aarch64/linaro-aarch64-2018.08-gcc8.2/bin/aarch64-linux-gnu-g++
 

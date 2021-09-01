@@ -631,7 +631,8 @@ int config__read(struct mosquitto__config *config, bool reload)
 		config_reload.listener_count = config->listener_count;
 		cur_security_options = NULL;
 		rc = config__read_file(&config_reload, reload, db.config_file, &cr, 0, &lineno);
-	}else{
+	}
+	else {
 		rc = config__read_file(config, reload, db.config_file, &cr, 0, &lineno);
 	}
 	if(rc){
@@ -648,16 +649,18 @@ int config__read(struct mosquitto__config *config, bool reload)
 	/* If auth/access options are set and allow_anonymous not explicitly set, disallow anon. */
 	if(config->local_only == true){
 		config->security_options.allow_anonymous = true;
-	}else{
-		if(config->per_listener_settings){
-			for(i=0; i<config->listener_count; i++){
+	}
+	else {
+		if (config->per_listener_settings) {
+			for (i = 0; i < config->listener_count; i++) {
 				/* Default option if no security options set */
 				if(config->listeners[i].security_options.allow_anonymous == -1){
 					config->listeners[i].security_options.allow_anonymous = false;
 				}
 			}
-		}else{
-			if(config->security_options.allow_anonymous == -1){
+		}
+		else {
+			if (config->security_options.allow_anonymous == -1) {
 				config->security_options.allow_anonymous = false;
 			}
 		}
@@ -678,7 +681,8 @@ int config__read(struct mosquitto__config *config, bool reload)
 #else
 			snprintf(config->persistence_filepath, len, "%s/%s", config->persistence_location, config->persistence_file);
 #endif
-		}else{
+		}
+		else {
 			config->persistence_filepath = mosquitto__strdup(config->persistence_file);
 			if(!config->persistence_filepath) return MOSQ_ERR_NOMEM;
 		}
@@ -700,10 +704,55 @@ int config__read(struct mosquitto__config *config, bool reload)
 	memset(&remote_config, 0, sizeof(struct mosquitto__bridge_remote_info));
 
 	result = config__read_remoteInfo_file(&remote_config, remoteInfoFile);
+
+	char* token;
+	char* tmp_char;
+	int tmp_int;
+	char* saveptr = remote_config.remote_address;
+
+	while ((token = strtok_r(NULL, " ", &saveptr))) {
+		if (token[0] == '#') {
+			break;
+		}
+		remote_config.remote_address = token;
+	}
+
+	tmp_char = strrchr(remote_config.remote_address, ':');
+	if (tmp_char) {
+		/* Remove ':', so cur_bridge->addresses[i].address
+		 * now just looks like the address. */
+		tmp_char[0] = '\0';
+
+		/* The remainder of the string */
+		tmp_int = atoi(&tmp_char[1]);
+		if (tmp_int < 1 || tmp_int > UINT16_MAX) {
+			log__printf(NULL, MOSQ_LOG_ERR, "Error: Invalid port value (%d).", tmp_int);
+			return MOSQ_ERR_INVAL;
+		}
+		remote_config.port = (uint16_t)tmp_int;
+	}
+	else {
+		remote_config.port = 1883;
+	}
 #endif
 
 #ifdef WITH_BRIDGE
 	for(i=0; i<config->bridge_count; i++){
+
+#if 1 // 2021.05.03 hwanjang - remote info
+
+		memset(&config->bridges[i].addresses->address, 0, sizeof(config->bridges[i].addresses->address));
+		memset(&config->bridges[i].remote_clientid, 0, sizeof(config->bridges[i].remote_clientid));
+		memset(&config->bridges[i].remote_username, 0, sizeof(config->bridges[i].remote_username));
+		memset(&config->bridges[i].remote_password, 0, sizeof(config->bridges[i].remote_password));
+
+		config->bridges[i].addresses->address = remote_config.remote_address;
+		config->bridges[i].addresses->port = remote_config.port;
+		config->bridges[i].remote_clientid = remote_config.remote_clientid;
+		config->bridges[i].remote_username = remote_config.remote_username;
+		config->bridges[i].remote_password = remote_config.remote_password;
+#endif
+
 		if(!config->bridges[i].name){
 			log__printf(NULL, MOSQ_LOG_ERR, "Error: Invalid bridge configuration: bridge name not defined.");
 			return MOSQ_ERR_INVAL;
@@ -727,15 +776,6 @@ int config__read(struct mosquitto__config *config, bool reload)
 		}
 #endif
 
-#if 1 // 2021.05.03 hwanjang - remote info
-		memset(&config->bridges[i].remote_clientid, 0, sizeof(config->bridges[i].remote_clientid));
-		memset(&config->bridges[i].remote_username, 0, sizeof(config->bridges[i].remote_username));
-		memset(&config->bridges[i].remote_password, 0, sizeof(config->bridges[i].remote_password));
-
-		config->bridges[i].remote_clientid = remote_config.remote_clientid;
-		config->bridges[i].remote_username = remote_config.remote_username;
-		config->bridges[i].remote_password = remote_config.remote_password;
-#endif
 	}
 #endif
 
@@ -2437,7 +2477,10 @@ static int config__read_remoteInfo_file_core(struct mosquitto__bridge_remote_inf
 			}
 			token = strtok_r((*buf), " ", &saveptr);
 			if (token) {
-				if (!strcmp(token, "remote_clientid")) {
+				if (!strcmp(token, "address")) {
+					if (conf__parse_string(&token, "bridge remote address", &remote_info->remote_address, saveptr)) return MOSQ_ERR_INVAL;
+				}
+				else if (!strcmp(token, "remote_clientid")) {
 					if (conf__parse_string(&token, "bridge remote clientid", &remote_info->remote_clientid, saveptr)) return MOSQ_ERR_INVAL;
 				}
 				else if (!strcmp(token, "remote_password")) {

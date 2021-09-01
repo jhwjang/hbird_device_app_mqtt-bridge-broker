@@ -4,6 +4,6 @@ cmake -Hmosquitto-2.0.10_src -B build/build_bridge_app -G "Visual Studio 16 2019
 
 cd build/build_bridge_app
 
-msbuild mosquitto.sln /p:Configuration=Debug /p:Platform="Win32" -target:mosquitto:Rebuild
+msbuild mosquitto.sln /p:Configuration=Debug /p:Platform="Win32" -target:hbird-bridge_broker:Rebuild
 
-msbuild mosquitto.sln /p:Configuration=Release /p:Platform="Win32" -target:mosquitto:Rebuild
+msbuild mosquitto.sln /p:Configuration=Release /p:Platform="Win32" -target:hbird-bridge_broker:Rebuild
