@@ -625,7 +625,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	UNUSED(nCmdShow);
 
 	argv = mosquitto__malloc(sizeof(char *)*1);
-	argv[0] = "mosquitto";
+	//argv[0] = "mosquitto";
+	argv[0] = "IoTHub-Bridge_Broker_Agent";  // hwanjang
+
 	token = strtok_r(lpCmdLine, " ", &saveptr);
 	while(token){
 		argc++;
