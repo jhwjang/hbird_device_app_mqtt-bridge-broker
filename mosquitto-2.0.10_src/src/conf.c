@@ -61,6 +61,8 @@ struct config_recurse {
 extern SERVICE_STATUS_HANDLE service_handle;
 #endif
 
+struct mosquitto__bridge_remote_info remote_config; // hwanjang
+
 static struct mosquitto__security_options *cur_security_options = NULL;
 
 static int conf__parse_bool(char **token, const char *name, bool *value, char *saveptr);
@@ -376,12 +378,80 @@ int config__parse_args(struct mosquitto__config *config, int argc, char *argv[])
 	int port_tmp;
 
 #if 1 // 202105.03 hwanjang
-	if (argc < 3)
-	{
-		argc = 3;
-		argv[1] = "-c";		
-		argv[2] = "config/test.conf";
+
+	printf("\n###############################################################\n");
+	printf("\nbridge 0.0.1 , 2 Aug 2021\npre-installed version\n");
+	//printf("\nbridge 0.0.2 , 7 Sep 2021\ncloud update version\n");
+	printf("\n###############################################################\n");
+
+	if (argc > 3)
+	{	
+		printf("argc : %d\n", argc);
+
+		for (int j = 1; j < argc; j++)
+		{
+			printf("argv[%d] : %s , size : %d\n", j, argv[j], strlen(argv[j]));
+		}
+
+		memset(&remote_config, 0, sizeof(struct mosquitto__bridge_remote_info));		
+
+		remote_config.remote_address = malloc(64);
+		remote_config.remote_clientid = malloc(64);
+		remote_config.remote_username = malloc(64);
+		remote_config.remote_password = malloc(1024);
+
+		memcpy(remote_config.remote_address, argv[1], (strlen(argv[1]) +1));
+		memcpy(remote_config.remote_clientid, argv[2], (strlen(argv[2]) +1));
+		memcpy(remote_config.remote_username, argv[2], (strlen(argv[2]) +1));
+		memcpy(remote_config.remote_password, argv[3], (strlen(argv[3]) +1));
+
+		printf("[hwanjang] config__parse_args() -> remote_address : %s\n", remote_config.remote_address);
+		printf("[hwanjang] config__parse_args() -> remote_clientid : %s\n", remote_config.remote_clientid);
+		printf("[hwanjang] config__parse_args() -> remote_username : %s\n", remote_config.remote_username);
+		printf("[hwanjang] config__parse_args() -> remote_password : %s\n", remote_config.remote_password);
+
+		char* token;
+		char* tmp_char;
+		int tmp_int;
+
+		tmp_char = strrchr(remote_config.remote_address, ':');
+		if (tmp_char) {
+			/* Remove ':', so cur_bridge->addresses[i].address
+			 * now just looks like the address. */
+			tmp_char[0] = '\0';
+
+			/* The remainder of the string */
+			tmp_int = atoi(&tmp_char[1]);
+			if (tmp_int < 1 || tmp_int > UINT16_MAX) {
+				log__printf(NULL, MOSQ_LOG_ERR, "Error: Invalid port value (%d).", tmp_int);
+
+				printf("Error: Invalid port value (%d).\n", tmp_int);
+				return MOSQ_ERR_INVAL;
+			}
+			remote_config.port = (uint16_t)tmp_int;
+		}
+		else {
+			remote_config.port = 1883;
+		}
+
+		printf("[hwanjang] config__parse_args() -> remote_address : %s , remote_config.port : %d\n", 
+					remote_config.remote_address, remote_config.port);
+
+#if 1
+		for (int i = 1; i < argc; i++)
+		{
+			memset(argv[i], 0, sizeof(*argv[i]));
+		}
+#endif
 	}
+
+	argv[1] = "-c";
+	argv[2] = "config/test.conf";
+
+	argc = 3;
+
+	printf("total argc : %d\n", argc);
+
 #endif
 
 	for(i=1; i<argc; i++){
@@ -695,7 +765,7 @@ int config__read(struct mosquitto__config *config, bool reload)
 		config->user = mosquitto__strdup("mosquitto");
 	}
 
-#if 1 // 2021.05.03 hwanjang - remote info
+#if 0 // 2021.05.03 hwanjang - remote info
 	int result = MOSQ_ERR_SUCCESS;
 
 	char* remoteInfoFile = "config/remote_info.conf";
