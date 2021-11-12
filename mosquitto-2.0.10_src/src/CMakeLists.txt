@@ -2,6 +2,11 @@ include_directories(${mosquitto_SOURCE_DIR} ${mosquitto_SOURCE_DIR}/src
 		${mosquitto_SOURCE_DIR}/include ${mosquitto_SOURCE_DIR}/lib
 		${OPENSSL_INCLUDE_DIR} ${STDBOOL_H_PATH} ${STDINT_H_PATH})
 
+## hwanjang - jansson   
+if (WITH_JANSSON)
+include_directories(${mosquitto_SOURCE_DIR}/../../${JANSSON_INCLUDE_DIR})
+endif()
+
 set (MOSQ_SRCS
 	../lib/alias_mosq.c ../lib/alias_mosq.h
 	bridge.c bridge_topic.c
@@ -202,11 +207,27 @@ if (WITH_WEBSOCKETS)
 	endif (STATIC_WEBSOCKETS)
 endif (WITH_WEBSOCKETS)
 
+## hwanjang - jansson  
+if (WITH_JANSSON)
+add_library(staticlib_jansson STATIC IMPORTED)
+set_target_properties(staticlib_jansson PROPERTIES 
+         IMPORTED_LOCATION_RELEASE ${mosquitto_SOURCE_DIR}/../../${JANSSON_LIBRARY_RELEASE})
+set_target_properties(staticlib_jansson PROPERTIES 
+         IMPORTED_LOCATION_DEBUG ${mosquitto_SOURCE_DIR}/../../${JANSSON_LIBRARY_DEBUG})
+
+set (MOSQ_LIBS ${MOSQ_LIBS} staticlib_jansson)
+endif()
+## end of jansson  
+
 add_executable(hbird-bridge_broker ${MOSQ_SRCS})
 target_link_libraries(hbird-bridge_broker ${MOSQ_LIBS})
 
 if (WIN32)
 	set_target_properties(hbird-bridge_broker PROPERTIES ENABLE_EXPORTS 1)
+	## hwanjang - add option 'requireAdministrator'
+	set_target_properties( hbird-bridge_broker
+  		PROPERTIES 
+  		LINK_FLAGS "/MANIFESTUAC:\"level='requireAdministrator' uiAccess='false'\" ")
 endif (WIN32)
 
 if (UNIX)

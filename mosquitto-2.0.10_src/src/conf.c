@@ -38,6 +38,22 @@ Contributors:
 #  include <ws2tcpip.h>
 #endif
 
+// add - hwanjang
+#include <time.h>  // hwanjang - for version
+
+#define USE_HBIRD_CRYPTO
+#if 0
+#define HBIRD_CRYPTO_DEBUG
+#endif
+
+#ifdef USE_HBIRD_CRYPTO
+#include "jansson.h"
+#include "HBirdCrypto.h"
+#endif
+
+//#include "test_conf_buffer.h"
+// end - hwanjang
+
 #if !defined(WIN32) && !defined(__CYGWIN__)
 #  include <syslog.h>
 #endif
@@ -61,7 +77,11 @@ struct config_recurse {
 extern SERVICE_STATUS_HANDLE service_handle;
 #endif
 
+#if 1 // hwanjang
 struct mosquitto__bridge_remote_info remote_config; // hwanjang
+static void hbird_bridge_broker_conf_init();
+static bool get_hbird_bridge_broker_conf(void* buf, int buf_size, int index);
+#endif
 
 static struct mosquitto__security_options *cur_security_options = NULL;
 
@@ -84,6 +104,10 @@ static void conf__set_cur_security_options(struct mosquitto__config *config, str
 
 static int conf__attempt_resolve(const char *host, const char *text, unsigned int log, const char *msg)
 {
+#ifdef HBIRD_CRYPTO_DEBUG // hwanjang
+	printf("[hwanjang] conf__attempt_resolve() -> start ... host : %s\n", host);
+#endif
+
 	struct addrinfo gai_hints;
 	struct addrinfo *gai_res;
 	int rc;
@@ -112,8 +136,18 @@ static int conf__attempt_resolve(const char *host, const char *text, unsigned in
 			log__printf(NULL, log, "%s: Error resolving %s.", msg, text);
 		}
 #endif
+
+#ifdef HBIRD_CRYPTO_DEBUG // hwanjang
+		printf("[hwanjang] conf__attempt_resolve() -> return  ... MOSQ_ERR_INVAL ,,, \n");
+#endif
+
 		return MOSQ_ERR_INVAL;
 	}
+
+#ifdef HBIRD_CRYPTO_DEBUG // hwanjang
+	printf("[hwanjang] conf__attempt_resolve() -> return  ... MOSQ_ERR_SUCCESS ,,, \n");
+#endif
+
 	return MOSQ_ERR_SUCCESS;
 }
 
@@ -372,6 +406,78 @@ static void print_usage(void)
 	printf("\nSee https://mosquitto.org/ for more information.\n\n");
 }
 
+// add - hwanjang 
+#ifdef USE_HBIRD_CRYPTO
+#define USE_ARGV_JSON
+#define USE_BASE64
+#endif
+
+#ifdef USE_BASE64
+/** Escape values. */
+enum special_e {
+	notabase64 = 64, /**< Value to return when a non base64 digit is found. */
+	terminator = 65, /**< Value to return when the character '=' is found.  */
+};
+
+/** Lookup table that converts a base64 digit to integer. */
+static char const digittobin[] = {
+	64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+	64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+	64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 62, 64, 64, 64, 63,
+	52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 64, 64, 64, 65, 64, 64,
+	64,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+	15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 64, 64, 64, 64, 64,
+	64, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+	41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 64, 64, 64, 64, 64,
+	64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+	64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+	64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+	64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+	64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+	64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+	64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64,
+	64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64
+};
+
+
+/* Convert a base64 null-terminated string to binary format.*/
+void* b64tobin(void* dest, char const* src) {
+	unsigned char const* s = (unsigned char*)src;
+	char* p = (char*)dest;
+	for (;;) {
+
+		int const a = digittobin[*s];
+		if (a == notabase64) return p;
+		if (a == terminator) return p;
+
+		int const b = digittobin[*++s];
+		if (b == notabase64) return 0;
+		if (b == terminator) return 0;
+
+		*p++ = (a << 2u) | (b >> 4u);
+
+		int const c = digittobin[*++s];
+		if (c == notabase64) return 0;
+
+		int const d = digittobin[*++s];
+		if (d == notabase64) return 0;
+		if (c == terminator) {
+			if (d != terminator) return 0;
+			return p;
+		}
+
+		*p++ = (b << 4u) | (c >> 2u);
+
+		if (d == terminator) return p;
+
+		*p++ = (c << 6u) | (d >> 0u);
+		++s;
+	}
+
+	return p;
+}
+#endif  // end - hwanjang 
+
 int config__parse_args(struct mosquitto__config *config, int argc, char *argv[])
 {
 	int i;
@@ -379,13 +485,188 @@ int config__parse_args(struct mosquitto__config *config, int argc, char *argv[])
 
 #if 1 // 202105.03 hwanjang
 
+#if 1 // ver 0.0.1
 	printf("\n###############################################################\n");
-	printf("\nbridge 0.0.1 , 2 Aug 2021\npre-installed version\n");
-	//printf("\nbridge 0.0.2 , 7 Sep 2021\ncloud update version\n");
+	printf("\nbridge 0.0.1 , %s , %s\npre-installed version\n", __DATE__, __TIME__);
 	printf("\n###############################################################\n");
+#else  // 0.0.2
+	printf("\n###############################################################\n");
+	printf("\nbridge 0.0.2 , %s , %s\ncloud update version\n", __DATE__, __TIME__);
+	printf("\n###############################################################\n");
+#endif
+
+
+#ifdef USE_ARGV_JSON
+
+#ifdef HBIRD_CRYPTO_DEBUG // hwanjang
+	printf("[hwanjang] mainagent argc : %d\n", argc);
+#endif
+
+	int original_JsonSize = atoi(argv[2]);
+	int enc_BinarySize = atoi(argv[3]);
+
+#ifdef HBIRD_CRYPTO_DEBUG // hwanjang
+	printf("[hwanjang] enc_BinarySize size : %d\\n", enc_BinarySize);
+#endif
+
+	char* base64_output;
+	base64_output = (char*)malloc((sizeof(char) * enc_BinarySize));
+
+
+	char* const enc_data = (char*)b64tobin(base64_output, argv[4]);
+
+	if (!enc_data)
+	{
+		fputs("Bad base64 format.", stderr);
+		return -1;
+	}
+
+	// argv[1] - random string
+	char charRandomString[32] = { 0, };
+	memcpy(&charRandomString, argv[1], (strlen(argv[1])));
+
+	// encryption json data
+#ifdef USE_HBIRD_CRYPTO
+	pHBirdCrypto pCrypto = HBirdCrypto_Create(__CRYPT_SIZE_256__, eString, charRandomString, 32);
+
+	char* pOutTextData = (char*)calloc(sizeof(char), original_JsonSize +1);
+	int dec_size = original_JsonSize + 1;
+	int ret = decrypt_Text_C(pCrypto, base64_output, enc_BinarySize, &pOutTextData, &dec_size , NULL, 0);
+
+	if (ret < 0) {
+		printf("[%s %d] FAIL!!! decrypt!!! \r\n", __FUNCTION__, __LINE__);
+	}
+	else {
+		printf("[%s %d] SUCCESS. decrypt!!!  \r\n", __FUNCTION__, __LINE__);
+#ifdef HBIRD_CRYPTO_DEBUG // hwanjang
+		printf("[%s %d] output text: \t size : %d , %s \r\n", __FUNCTION__, __LINE__, dec_size, pOutTextData);
+#endif
+	}
+
+
+#if 0
+	char* pOutTextSize = (char*)calloc(sizeof(char), original_JsonSize);
+	int ret = decrypt_Text_C(pCrypto, base64_output, enc_BinarySize, &pOutTextSize, &original_JsonSize, charRandomString, 32);
+
+	if (ret < 0) {
+		printf("[%s %d] FAIL!!! decrypt!!! \r\n", __FUNCTION__, __LINE__);
+	}
+	else {
+		printf("[%s %d] SUCCESS. decrypt!!!  \r\n", __FUNCTION__, __LINE__);
+		printf("[%s %d] output text: \t %s \r\n", __FUNCTION__, __LINE__, pOutTextSize);
+	}
+#endif
+
+#endif
+
+	memset(&remote_config, 0, sizeof(struct mosquitto__bridge_remote_info));
+
+	remote_config.remote_address = (char*)calloc(128, sizeof(char));
+	remote_config.remote_clientid = (char*)calloc(128, sizeof(char));
+	remote_config.remote_username = (char*)calloc(128, sizeof(char));
+	remote_config.remote_password = (char*)calloc(2048, sizeof(char));
+	remote_config.port = 0;
+
+
+	int result;
+	char* charCloudDeviceId, * charCloudDeviceKey, * charMqttTls;;
+	json_error_t error_check;
+	json_t* json_strRoot = json_loads(pOutTextData, 0, &error_check);
+
+	if (!json_strRoot)
+	{
+		fprintf(stderr, "error : root\n");
+		fprintf(stderr, "error : on line %d: %s\n", error_check.line, error_check.text);
+
+#ifdef HBIRD_CRYPTO_DEBUG // hwanjang
+		printf("[hwanjang] config__parse_args() -> pOutTextData : \n%s\n", pOutTextData);
+#endif
+
+		return MOSQ_ERR_INVAL;
+	}
+	else
+	{
+		result = json_unpack(json_strRoot, "{s:s, s:s}", "deviceId", &charCloudDeviceId, "deviceKey", &charCloudDeviceKey);
+
+		if (result)
+		{
+			printf("[hwanjang] json_unpack fail .. deviceId or deviceKey !!!\n");
+			printf("pOutTextData : \n%s\n", pOutTextData);
+			return MOSQ_ERR_INVAL;
+		}
+		else
+		{
+			memcpy(remote_config.remote_clientid, charCloudDeviceId, (strlen(charCloudDeviceId) + 1));
+			memcpy(remote_config.remote_username, charCloudDeviceId, (strlen(charCloudDeviceId) + 1));
+			memcpy(remote_config.remote_password, charCloudDeviceKey, (strlen(charCloudDeviceKey) + 1));
+		}
+
+		// configInformation
+		json_t* json_configInfo = json_object_get(json_strRoot, "cloudServerConfig");
+
+		if (!json_configInfo)
+		{
+			printf("[hwanjang] 2. cannot find cloudServerConfig ... pOutTextData : %s\n", pOutTextData);
+			return MOSQ_ERR_INVAL;
+		}
+		else
+		{
+			// mqtt
+			json_t* json_sub_mqtt = json_object_get(json_configInfo, "mqtt");
+
+			if (!json_sub_mqtt)
+			{
+				printf("[hwanjang] cannot find mqtt ... pOutTextData : \n%s\n", pOutTextData);
+				return MOSQ_ERR_INVAL;
+			}
+			else
+			{
+				// tls				
+				result = json_unpack(json_sub_mqtt, "{s:s}", "tls", &charMqttTls);
+
+				if (result)
+				{
+					printf("[hwanjang] json_unpack fail .. tls in MQTT !!!\n");
+					printf("pOutTextData : \n%s\n", pOutTextData);
+
+					return MOSQ_ERR_INVAL;
+				}
+				else
+				{
+					memcpy(remote_config.remote_address, charMqttTls, (strlen(charMqttTls) + 1));
+				}
+			}
+			json_decref(json_sub_mqtt);
+		}
+		json_decref(json_configInfo);
+	}
+	json_decref(json_strRoot);
+
+	
+	if (strlen(charMqttTls) < 1)
+		printf("remote_address is 0 ?????\n");
+	
+
+	if (strlen(charCloudDeviceId) < 1)
+		printf("charCloudDeviceId is 0 ?????\n");
+
+	if (strlen(charCloudDeviceId) < 1)
+		printf("charCloudDeviceId is 0 ?????\n");
+
+	if (strlen(charCloudDeviceKey) < 1)
+		printf("charCloudDeviceKey is 0 ?????\n");
+
+#ifdef HBIRD_CRYPTO_DEBUG // hwanjang
+	printf("[hwanjang] config__parse_args() -> remote_address : %s\n", remote_config.remote_address);
+	printf("[hwanjang] config__parse_args() -> remote_clientid : %s\n", remote_config.remote_clientid);
+	printf("[hwanjang] config__parse_args() -> remote_username : %s\n", remote_config.remote_username);
+	printf("[hwanjang] config__parse_args() -> remote_password : %s\n", remote_config.remote_password);
+#endif
+
+#else  // no json
 
 	if (argc > 3)
-	{	
+	{
 		printf("argc : %d\n", argc);
 
 		for (int j = 1; j < argc; j++)
@@ -393,24 +674,29 @@ int config__parse_args(struct mosquitto__config *config, int argc, char *argv[])
 			printf("argv[%d] : %s , size : %d\n", j, argv[j], strlen(argv[j]));
 		}
 
-		memset(&remote_config, 0, sizeof(struct mosquitto__bridge_remote_info));		
+		memset(&remote_config, 0, sizeof(struct mosquitto__bridge_remote_info));
 
-		remote_config.remote_address = malloc(64);
-		remote_config.remote_clientid = malloc(64);
-		remote_config.remote_username = malloc(64);
-		remote_config.remote_password = malloc(1024);
+		remote_config.remote_address = (char*)calloc(128, sizeof(char));
+		remote_config.remote_clientid = (char*)calloc(128, sizeof(char));
+		remote_config.remote_username = (char*)calloc(128, sizeof(char));
+		remote_config.remote_password = (char*)calloc(2048, sizeof(char));
+		remote_config.port = 0;
 
-		memcpy(remote_config.remote_address, argv[1], (strlen(argv[1]) +1));
-		memcpy(remote_config.remote_clientid, argv[2], (strlen(argv[2]) +1));
-		memcpy(remote_config.remote_username, argv[2], (strlen(argv[2]) +1));
-		memcpy(remote_config.remote_password, argv[3], (strlen(argv[3]) +1));
+		memcpy(remote_config.remote_address, argv[1], (strlen(argv[1]) + 1));
+		memcpy(remote_config.remote_clientid, argv[2], (strlen(argv[2]) + 1));
+		memcpy(remote_config.remote_username, argv[2], (strlen(argv[2]) + 1));
+		memcpy(remote_config.remote_password, argv[3], (strlen(argv[3]) + 1));
 
+#if 0 // for debug
 		printf("[hwanjang] config__parse_args() -> remote_address : %s\n", remote_config.remote_address);
 		printf("[hwanjang] config__parse_args() -> remote_clientid : %s\n", remote_config.remote_clientid);
 		printf("[hwanjang] config__parse_args() -> remote_username : %s\n", remote_config.remote_username);
 		printf("[hwanjang] config__parse_args() -> remote_password : %s\n", remote_config.remote_password);
+#endif
 
-		char* token;
+	}
+#endif  // end of USE_ARGV_JSON
+
 		char* tmp_char;
 		int tmp_int;
 
@@ -431,18 +717,17 @@ int config__parse_args(struct mosquitto__config *config, int argc, char *argv[])
 			remote_config.port = (uint16_t)tmp_int;
 		}
 		else {
-			remote_config.port = 1883;
+			remote_config.port = 5188;
 		}
 
+#ifdef HBIRD_CRYPTO_DEBUG // hwanjang
 		printf("[hwanjang] config__parse_args() -> remote_address : %s , remote_config.port : %d\n", 
 					remote_config.remote_address, remote_config.port);
-
-#if 1
-		for (int i = 1; i < argc; i++)
-		{
-			memset(argv[i], 0, sizeof(*argv[i]));
-		}
 #endif
+
+	for (int i = 1; i < argc; i++)
+	{
+		memset(argv[i], 0, sizeof(*argv[i]));
 	}
 
 	argv[1] = "-c";
@@ -452,7 +737,7 @@ int config__parse_args(struct mosquitto__config *config, int argc, char *argv[])
 
 	printf("total argc : %d\n", argc);
 
-#endif
+#endif  // 202105.03 hwanjang
 
 	for(i=1; i<argc; i++){
 		if(!strcmp(argv[i], "-c") || !strcmp(argv[i], "--config-file")){
@@ -807,9 +1092,15 @@ int config__read(struct mosquitto__config *config, bool reload)
 #endif
 
 #ifdef WITH_BRIDGE
+	printf("[hwanjang] config__read() -> bridge_count : %d\n", config->bridge_count);
+
 	for(i=0; i<config->bridge_count; i++){
 
 #if 1 // 2021.05.03 hwanjang - remote info
+
+		if (config->bridges[i].addresses == 0) {
+			printf("[hwanjang] config__read() -> Error: Invalid bridge configuration: no remote addresses defined.\n");
+		}
 
 		memset(&config->bridges[i].addresses->address, 0, sizeof(config->bridges[i].addresses->address));
 		memset(&config->bridges[i].remote_clientid, 0, sizeof(config->bridges[i].remote_clientid));
@@ -822,19 +1113,28 @@ int config__read(struct mosquitto__config *config, bool reload)
 		config->bridges[i].remote_username = remote_config.remote_username;
 		config->bridges[i].remote_password = remote_config.remote_password;
 #endif
+		printf("1. config->bridges[i].name : %s\n", config->bridges[i].name);
 
 		if(!config->bridges[i].name){
 			log__printf(NULL, MOSQ_LOG_ERR, "Error: Invalid bridge configuration: bridge name not defined.");
 			return MOSQ_ERR_INVAL;
 		}
+
+		printf("2. config->bridges[i].addresses->address : %s\n", config->bridges[i].addresses->address);
+
 		if(config->bridges[i].addresses  == 0){
 			log__printf(NULL, MOSQ_LOG_ERR, "Error: Invalid bridge configuration: no remote addresses defined.");
 			return MOSQ_ERR_INVAL;
 		}
+
+		printf("3. config->bridges[i].topic_count : %d\n", config->bridges[i].topic_count);
+
 		if(config->bridges[i].topic_count == 0){
 			log__printf(NULL, MOSQ_LOG_ERR, "Error: Invalid bridge configuration: no topics defined.");
 			return MOSQ_ERR_INVAL;
 		}
+
+
 #ifdef FINAL_WITH_TLS_PSK
 		if(config->bridges[i].tls_psk && !config->bridges[i].tls_psk_identity){
 			log__printf(NULL, MOSQ_LOG_ERR, "Error: Invalid bridge configuration: missing bridge_identity.");
@@ -860,6 +1160,12 @@ int config__read(struct mosquitto__config *config, bool reload)
 	return MOSQ_ERR_SUCCESS;
 }
 
+#if 1 // hwanjang
+typedef struct MemoryStruct {
+	char* memory;
+	size_t size;
+} ChunkStruct;
+#endif
 
 static int config__read_file_core(struct mosquitto__config *config, bool reload, struct config_recurse *cr, int level, int *lineno, FILE *fptr, char **buf, int *buflen)
 {
@@ -888,6 +1194,9 @@ static int config__read_file_core(struct mosquitto__config *config, bool reload,
 
 	*lineno = 0;
 
+#if 0
+	int index = 0;
+
 	while(fgets_extending(buf, buflen, fptr)){
 		(*lineno)++;
 		if((*buf)[0] != '#' && (*buf)[0] != 10 && (*buf)[0] != 13){
@@ -895,6 +1204,67 @@ static int config__read_file_core(struct mosquitto__config *config, bool reload,
 				(*buf)[strlen((*buf))-1] = 0;
 			}
 			token = strtok_r((*buf), " ", &saveptr);
+
+#else  // hwanjang
+
+	hbird_bridge_broker_conf_init();
+
+	const static int conf_buf_size = 1000;
+	//char* tempBuf = mosquitto__malloc((size_t)conf_buf_size);
+	char tempBuf[1000] = { 0, };
+
+	ChunkStruct chunk;
+
+
+
+	int index = 0;
+	bool result_parse;
+
+	while (1) {
+
+		memset(tempBuf, 0, sizeof(conf_buf_size));
+
+#ifdef HBIRD_CRYPTO_DEBUG // hwanjang
+		printf("[hwanjang] 0. config__read_file_core() -> tempBuf : %s\n", tempBuf);
+#endif
+
+		chunk.memory = (char*)malloc(1);  /* will be grown as needed by the realloc above */
+		chunk.size = 0;    /* no data at this point */
+
+		if (get_hbird_bridge_broker_conf((void*)&chunk, chunk.size, index) == false)
+		{
+			printf("### end of parsing token ... index : %d \n", index);
+			break;
+		}
+
+#ifdef HBIRD_CRYPTO_DEBUG // hwanjang
+		printf("[hwanjang] 1. config__read_file_core() -> %d . chunk.memory : %s , chunk.size : %d\n", index, chunk.memory, chunk.size);
+#endif
+
+		//memcpy(tempBuf, chunk.memory, chunk.size);
+
+		strncpy(tempBuf, chunk.memory, chunk.size);
+		tempBuf[chunk.size] = '\0';
+
+		if (chunk.memory)
+			free(chunk.memory);
+
+#ifdef HBIRD_CRYPTO_DEBUG // hwanjang
+		printf("[hwanjang] 2. config__read_file_core() -> %d . tempBuf : %s\n", index, tempBuf);
+#endif
+
+		index++;
+
+		(*lineno)++;
+		if (tempBuf[0] != '#' && tempBuf[0] != 10 && tempBuf[0] != 13) {			
+
+			token = strtok_r(tempBuf, " ", &saveptr);
+#endif
+
+#ifdef HBIRD_CRYPTO_DEBUG // hwanjang
+			printf("[hwanjang] config__read_file_core() -> token : %s\n", token);
+#endif
+
 			if(token){
 				if(!strcmp(token, "acl_file")){
 					conf__set_cur_security_options(config, cur_listener, &cur_security_options);
@@ -921,6 +1291,10 @@ static int config__read_file_core(struct mosquitto__config *config, bool reload,
 							return MOSQ_ERR_NOMEM;
 						}
 						cur_bridge->addresses[cur_bridge->address_count-1].address = token;
+#ifdef HBIRD_CRYPTO_DEBUG // hwanjang
+						 printf("[hwanjang] token : %s\n", token);
+#endif
+
 					}
 					for(i=0; i<cur_bridge->address_count; i++){
 						/* cur_bridge->addresses[i].address is now
@@ -1396,6 +1770,10 @@ static int config__read_file_core(struct mosquitto__config *config, bool reload,
 							log__printf(NULL, MOSQ_LOG_ERR, "Error: Out of memory.");
 							return MOSQ_ERR_NOMEM;
 						}
+
+#ifdef HBIRD_CRYPTO_DEBUG // hwanjang
+						//printf("[hwanjang] config__read_file_core() -> cur_bridge->name : %s \n", cur_bridge->name);
+#endif
 						cur_bridge->keepalive = 60;
 						cur_bridge->notifications = true;
 						cur_bridge->notifications_local_only = false;
@@ -2318,6 +2696,7 @@ static int config__read_file_core(struct mosquitto__config *config, bool reload,
 					return MOSQ_ERR_INVAL;
 				}
 			}
+			//printf("[hwanjang] ### end of parsing token ... goback ...\n");
 		}
 	}
 	return MOSQ_ERR_SUCCESS;
@@ -2448,6 +2827,9 @@ static int config__check(struct mosquitto__config *config)
 static int conf__parse_bool(char **token, const char *name, bool *value, char *saveptr)
 {
 	*token = strtok_r(NULL, " ", &saveptr);
+
+	printf("[hwanjang] conf__parse_bool() -> *token : %s \n", *token);
+
 	if(*token){
 		if(!strcmp(*token, "false") || !strcmp(*token, "0")){
 			*value = false;
@@ -2461,6 +2843,8 @@ static int conf__parse_bool(char **token, const char *name, bool *value, char *s
 		log__printf(NULL, MOSQ_LOG_ERR, "Error: Empty %s value in configuration.", name);
 		return MOSQ_ERR_INVAL;
 	}
+
+	printf("[hwanjang] conf__parse_bool() -> *token : %s , *value = %d\n", *token, *value);
 
 	return MOSQ_ERR_SUCCESS;
 }
@@ -2536,7 +2920,6 @@ static int config__read_remoteInfo_file_core(struct mosquitto__bridge_remote_inf
 	char* token;
 	char* saveptr = NULL;
 #ifdef WITH_BRIDGE
-	char* tmp_char;
 	struct mosquitto__bridge* cur_bridge = NULL;
 #endif
 
@@ -2548,16 +2931,16 @@ static int config__read_remoteInfo_file_core(struct mosquitto__bridge_remote_inf
 			token = strtok_r((*buf), " ", &saveptr);
 			if (token) {
 				if (!strcmp(token, "address")) {
-					if (conf__parse_string(&token, "bridge remote address", &remote_info->remote_address, saveptr)) return MOSQ_ERR_INVAL;
+					if (conf__parse_string(&token, "bridge remote address", &(remote_info->remote_address), saveptr)) return MOSQ_ERR_INVAL;
 				}
 				else if (!strcmp(token, "remote_clientid")) {
-					if (conf__parse_string(&token, "bridge remote clientid", &remote_info->remote_clientid, saveptr)) return MOSQ_ERR_INVAL;
+					if (conf__parse_string(&token, "bridge remote clientid", &(remote_info->remote_clientid), saveptr)) return MOSQ_ERR_INVAL;
 				}
 				else if (!strcmp(token, "remote_password")) {
-					if (conf__parse_string(&token, "bridge remote_password", &remote_info->remote_password, saveptr)) return MOSQ_ERR_INVAL;
+					if (conf__parse_string(&token, "bridge remote_password", &(remote_info->remote_password), saveptr)) return MOSQ_ERR_INVAL;
 				}
 				else if (!strcmp(token, "remote_username")) {
-					if (conf__parse_string(&token, "bridge remote_username", &remote_info->remote_username, saveptr)) return MOSQ_ERR_INVAL;
+					if (conf__parse_string(&token, "bridge remote_username", &(remote_info->remote_username), saveptr)) return MOSQ_ERR_INVAL;
 				}
 			}
 		}
@@ -2603,5 +2986,225 @@ int config__read_remoteInfo_file(struct mosquitto__bridge_remote_info* remote_in
 	fclose(fptr);
 
 	return rc;
+}
+
+#define CONF_BUF_SIZE 29
+char** conf_buf;
+char fixed_conf[CONF_BUF_SIZE][64];
+
+static void hbird_bridge_broker_conf_init()
+{
+	printf("[hwanjang] hbird_bridge_broker_conf_init() -> init ...\n");
+
+	// need linefeed
+#if 0
+
+	conf_buf = (char**)calloc(CONF_BUF_SIZE, sizeof(char));
+
+	for (int i = 0; i < CONF_BUF_SIZE; i++)
+	{
+		conf_buf[i] = (char*)calloc(64, sizeof(char));
+	}
+
+
+	conf_buf[0] = "user root";
+	conf_buf[1] = "sys_interval 0";
+	conf_buf[2] = "max_inflight_messages 400";
+	conf_buf[3] = "max_queued_messages 4000";
+	conf_buf[4] = "max_packet_size 1000000";
+	conf_buf[5] = "allow_anonymous true";
+	conf_buf[6] = "persistence false";
+	conf_buf[7] = "persistent_client_expiration 1d";
+	conf_buf[8] = "log_timestamp true";
+	conf_buf[9] = "log_type debug";  // reduce log level to warning ...
+	conf_buf[10] = "log_dest stdout";
+	conf_buf[11] = "listener 1883 127.0.0.1";
+	conf_buf[12] = "listener 2883";
+	conf_buf[13] = "connection hbird_iothub";
+	//conf_buf[14] = "address hanwha.com";
+	conf_buf[14] = "address mqtt.dev.wisenetcloud.com:5000";	
+	conf_buf[15] = "topic # in 0";
+	conf_buf[16] = "topic # out 0";
+	conf_buf[17] = "topic # both 0";
+	conf_buf[18] = "try_private false";
+	conf_buf[19] = "bridge_alpn alpn";
+	conf_buf[20] = "bridge_protocol_version mqttv311";
+	conf_buf[21] = "bridge_insecure false";  // change to true for better security
+	conf_buf[22] = "cleansession true";
+	conf_buf[23] = "start_type automatic";  // auto connect and reconnect
+	conf_buf[24] = "notifications false";
+	conf_buf[25] = "keepalive_interval 300";  // careful ELB settings!!
+	conf_buf[26] = "bridge_capath config/";
+	conf_buf[27] = "bridge_cafile config/ca-certificates.crt";
+	conf_buf[28] = "bridge_certfile config/ca-certificates.crt";
+#else
+	for (int i = 0; i < CONF_BUF_SIZE; i++)
+	{
+		memset(fixed_conf[i], 0, sizeof(char) * 64);
+	}
+
+	char temp_buf[64] = { 0, };
+
+	strcpy(temp_buf, "user root");
+	memcpy(fixed_conf[0], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "sys_interval 0");
+	memcpy(&fixed_conf[1], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "max_inflight_messages 400");
+	memcpy(&fixed_conf[2], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "max_queued_messages 4000");
+	memcpy(&fixed_conf[3], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "max_packet_size 1000000");
+	memcpy(&fixed_conf[4], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "allow_anonymous true");
+	memcpy(&fixed_conf[5], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "persistence false");
+	memcpy(&fixed_conf[6], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "persistent_client_expiration 1d");
+	memcpy(&fixed_conf[7], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "log_timestamp true");
+	memcpy(&fixed_conf[8], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "log_type debug");
+	memcpy(&fixed_conf[9], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "log_dest stdout");
+	memcpy(&fixed_conf[10], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "listener 1883 127.0.0.1");
+	memcpy(&fixed_conf[11], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "listener 2883");
+	memcpy(&fixed_conf[12], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "connection hbird_iothub");
+	memcpy(&fixed_conf[13], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "address mqtt.prod.wisenetcloud.com:5000");
+	memcpy(&fixed_conf[14], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "topic # in 0");
+	memcpy(&fixed_conf[15], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "topic # out 0");
+	memcpy(&fixed_conf[16], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "topic # both 0");
+	memcpy(&fixed_conf[17], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "try_private false");
+	memcpy(&fixed_conf[18], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "bridge_alpn alpn");
+	memcpy(&fixed_conf[19], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "bridge_protocol_version mqttv311");
+	memcpy(&fixed_conf[20], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	//strcpy(temp_buf, "bridge_insecure false");
+	strcpy(temp_buf, "bridge_insecure true");
+	memcpy(&fixed_conf[21], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "cleansession true");
+	memcpy(&fixed_conf[22], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "start_type automatic");
+	memcpy(&fixed_conf[23], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "notifications false");
+	memcpy(&fixed_conf[24], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "keepalive_interval 300");
+	memcpy(&fixed_conf[25], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "bridge_capath config/");
+	memcpy(&fixed_conf[26], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "bridge_cafile config/ca-certificates.crt");
+	memcpy(&fixed_conf[27], &temp_buf, sizeof(temp_buf));
+
+	memset(temp_buf, NULL, sizeof(temp_buf));
+	strcpy(temp_buf, "bridge_certfile config/ca-certificates.crt");
+	memcpy(&fixed_conf[28], &temp_buf, sizeof(temp_buf));
+
+	printf("hbird_bridge_broker_conf_init() -> fixed_conf : %s\n ", fixed_conf[28]);
+
+#endif
+
+
+#if 1
+	for (int i = 0; i < CONF_BUF_SIZE; i++)
+	{
+		printf("%d. length : %d , %s\n", i, strlen(fixed_conf[i]), fixed_conf[i]);
+	}
+#endif
+
+}
+
+static bool get_hbird_bridge_broker_conf(void* buf, int buf_size, int index)
+{
+	printf("get_hbird_bridge_broker_conf() -> index : %d\n", index);
+
+	if (index == CONF_BUF_SIZE)
+	{
+		printf("get_hbird_bridge_broker_conf() -> index : %d  --> return false !!!!\n", index);
+		return false;
+	}
+
+	size_t realsize = buf_size + strlen(fixed_conf[index]);
+	ChunkStruct* mem = (ChunkStruct*)buf;
+
+	mem->memory = (char*)realloc(mem->memory, mem->size + realsize + 1);
+
+	if (mem->memory != NULL)
+	{
+		memcpy(&(mem->memory[mem->size]), fixed_conf[index], realsize);
+		mem->size += realsize;
+		mem->memory[mem->size] = 0;
+	}
+	else
+	{
+		/* out of memory! */
+		printf("not enough memory (realloc returned NULL)\n");
+		return 0;
+	}
+
+	printf("get_hbird_bridge_broker_conf() -> return buf : %s\n", mem->memory);
+
+	return true;
 }
 #endif

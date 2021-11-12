@@ -197,8 +197,8 @@ int mosquitto_reinitialise(struct mosquitto *mosq, const char *id, bool clean_st
 	mosq->ssl = NULL;
 	mosq->ssl_ctx = NULL;
 	mosq->ssl_ctx_defaults = true;
-#if 0  // ori
-	//mosq->tls_cert_reqs = SSL_VERIFY_PEER;
+#if 1  // ori
+	mosq->tls_cert_reqs = SSL_VERIFY_PEER;
 #else  // hwanjang
 	mosq->tls_cert_reqs = SSL_VERIFY_NONE;
 #endif
