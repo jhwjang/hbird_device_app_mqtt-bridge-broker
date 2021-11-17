@@ -1218,7 +1218,6 @@ static int config__read_file_core(struct mosquitto__config *config, bool reload,
 
 
 	int index = 0;
-	bool result_parse;
 
 	while (1) {
 
@@ -1233,7 +1232,7 @@ static int config__read_file_core(struct mosquitto__config *config, bool reload,
 
 		if (get_hbird_bridge_broker_conf((void*)&chunk, chunk.size, index) == false)
 		{
-			printf("### end of parsing token ... index : %d \n", index);
+			//printf("### end of parsing token ... index : %d \n", index);
 			break;
 		}
 
@@ -2828,8 +2827,6 @@ static int conf__parse_bool(char **token, const char *name, bool *value, char *s
 {
 	*token = strtok_r(NULL, " ", &saveptr);
 
-	printf("[hwanjang] conf__parse_bool() -> *token : %s \n", *token);
-
 	if(*token){
 		if(!strcmp(*token, "false") || !strcmp(*token, "0")){
 			*value = false;
@@ -2843,9 +2840,6 @@ static int conf__parse_bool(char **token, const char *name, bool *value, char *s
 		log__printf(NULL, MOSQ_LOG_ERR, "Error: Empty %s value in configuration.", name);
 		return MOSQ_ERR_INVAL;
 	}
-
-	printf("[hwanjang] conf__parse_bool() -> *token : %s , *value = %d\n", *token, *value);
-
 	return MOSQ_ERR_SUCCESS;
 }
 
@@ -3048,125 +3042,131 @@ static void hbird_bridge_broker_conf_init()
 	strcpy(temp_buf, "user root");
 	memcpy(fixed_conf[0], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "sys_interval 0");
 	memcpy(&fixed_conf[1], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "max_inflight_messages 400");
 	memcpy(&fixed_conf[2], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "max_queued_messages 4000");
 	memcpy(&fixed_conf[3], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "max_packet_size 1000000");
 	memcpy(&fixed_conf[4], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "allow_anonymous true");
 	memcpy(&fixed_conf[5], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "persistence false");
 	memcpy(&fixed_conf[6], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "persistent_client_expiration 1d");
 	memcpy(&fixed_conf[7], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "log_timestamp true");
 	memcpy(&fixed_conf[8], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
-	strcpy(temp_buf, "log_type debug");
+	memset(temp_buf, 0, sizeof(temp_buf));
+	#if 0 // for debug
+	//strcpy(temp_buf, "log_type debug");
+	#else  // for release
+	strcpy(temp_buf, "log_type none");
+	#endif
 	memcpy(&fixed_conf[9], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
-	strcpy(temp_buf, "log_dest stdout");
+	memset(temp_buf, 0, sizeof(temp_buf));
+	#if 0 // for debug
+	//strcpy(temp_buf, "log_dest stdout");
+	#else  // for release
+	strcpy(temp_buf, "log_dest none");
+	#endif
 	memcpy(&fixed_conf[10], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "listener 1883 127.0.0.1");
 	memcpy(&fixed_conf[11], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "listener 2883");
 	memcpy(&fixed_conf[12], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "connection hbird_iothub");
 	memcpy(&fixed_conf[13], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "address mqtt.prod.wisenetcloud.com:5000");
 	memcpy(&fixed_conf[14], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "topic # in 0");
 	memcpy(&fixed_conf[15], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "topic # out 0");
 	memcpy(&fixed_conf[16], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "topic # both 0");
 	memcpy(&fixed_conf[17], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "try_private false");
 	memcpy(&fixed_conf[18], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "bridge_alpn alpn");
 	memcpy(&fixed_conf[19], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "bridge_protocol_version mqttv311");
 	memcpy(&fixed_conf[20], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	//strcpy(temp_buf, "bridge_insecure false");
 	strcpy(temp_buf, "bridge_insecure true");
 	memcpy(&fixed_conf[21], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "cleansession true");
 	memcpy(&fixed_conf[22], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "start_type automatic");
 	memcpy(&fixed_conf[23], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "notifications false");
 	memcpy(&fixed_conf[24], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "keepalive_interval 300");
 	memcpy(&fixed_conf[25], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "bridge_capath config/");
 	memcpy(&fixed_conf[26], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "bridge_cafile config/ca-certificates.crt");
 	memcpy(&fixed_conf[27], &temp_buf, sizeof(temp_buf));
 
-	memset(temp_buf, NULL, sizeof(temp_buf));
+	memset(temp_buf, 0, sizeof(temp_buf));
 	strcpy(temp_buf, "bridge_certfile config/ca-certificates.crt");
 	memcpy(&fixed_conf[28], &temp_buf, sizeof(temp_buf));
-
-	printf("hbird_bridge_broker_conf_init() -> fixed_conf : %s\n ", fixed_conf[28]);
 
 #endif
 
 
-#if 1
+#if 0  // for debug
 	for (int i = 0; i < CONF_BUF_SIZE; i++)
 	{
 		printf("%d. length : %d , %s\n", i, strlen(fixed_conf[i]), fixed_conf[i]);
@@ -3177,11 +3177,11 @@ static void hbird_bridge_broker_conf_init()
 
 static bool get_hbird_bridge_broker_conf(void* buf, int buf_size, int index)
 {
-	printf("get_hbird_bridge_broker_conf() -> index : %d\n", index);
+	//printf("get_hbird_bridge_broker_conf() -> index : %d\n", index);
 
 	if (index == CONF_BUF_SIZE)
 	{
-		printf("get_hbird_bridge_broker_conf() -> index : %d  --> return false !!!!\n", index);
+		//printf("get_hbird_bridge_broker_conf() -> index : %d  --> return false !!!!\n", index);
 		return false;
 	}
 
@@ -3203,7 +3203,7 @@ static bool get_hbird_bridge_broker_conf(void* buf, int buf_size, int index)
 		return 0;
 	}
 
-	printf("get_hbird_bridge_broker_conf() -> return buf : %s\n", mem->memory);
+	//printf("get_hbird_bridge_broker_conf() -> return buf : %s\n", mem->memory);
 
 	return true;
 }
