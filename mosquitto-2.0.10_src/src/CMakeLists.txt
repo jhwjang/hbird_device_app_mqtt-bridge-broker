@@ -2,10 +2,13 @@ include_directories(${mosquitto_SOURCE_DIR} ${mosquitto_SOURCE_DIR}/src
 		${mosquitto_SOURCE_DIR}/include ${mosquitto_SOURCE_DIR}/lib
 		${OPENSSL_INCLUDE_DIR} ${STDBOOL_H_PATH} ${STDINT_H_PATH})
 
-## hwanjang - jansson   
-if (WITH_JANSSON)
+## hwanjang - jansson & HBird Ctypto  
+set(JANSSON_INCLUDE_DIR "hbird_device_app_mqtt-bridge-broker/third_party/jansson/include")
 include_directories(${mosquitto_SOURCE_DIR}/../../${JANSSON_INCLUDE_DIR})
-endif()
+
+set(HBIRD_CRYPTO_INCLUDE_DIR "hbird_device_app_mqtt-bridge-broker/third_party/HBirdCrypto/include")
+include_directories(${mosquitto_SOURCE_DIR}/../../${HBIRD_CRYPTO_INCLUDE_DIR})
+## end of hwanjang - jansson & HBird Ctypto  
 
 set (MOSQ_SRCS
 	../lib/alias_mosq.c ../lib/alias_mosq.h
@@ -207,17 +210,29 @@ if (WITH_WEBSOCKETS)
 	endif (STATIC_WEBSOCKETS)
 endif (WITH_WEBSOCKETS)
 
-## hwanjang - jansson  
-if (WITH_JANSSON)
+## hwanjang - jansson 
+
+set(JANSSON_LIBRARY_DEBUG "hbird_device_app_mqtt-bridge-broker/third_party/jansson/lib/windows/debug/jansson_d.lib")
+set(JANSSON_LIBRARY_RELEASE "hbird_device_app_mqtt-bridge-broker/third_party/jansson/lib/windows/release/jansson.lib")
+
 add_library(staticlib_jansson STATIC IMPORTED)
 set_target_properties(staticlib_jansson PROPERTIES 
          IMPORTED_LOCATION_RELEASE ${mosquitto_SOURCE_DIR}/../../${JANSSON_LIBRARY_RELEASE})
 set_target_properties(staticlib_jansson PROPERTIES 
          IMPORTED_LOCATION_DEBUG ${mosquitto_SOURCE_DIR}/../../${JANSSON_LIBRARY_DEBUG})
-
 set (MOSQ_LIBS ${MOSQ_LIBS} staticlib_jansson)
-endif()
-## end of jansson  
+
+## HBird Ctypto
+
+set(HBIRD_CRYPTO_LIBRARY_DEBUG "hbird_device_app_mqtt-bridge-broker/third_party/HBirdCrypto/lib/windows/debug/HBirdCrypto_debug.lib")
+set(HBIRD_CRYPTO_LIBRARY_RELEASE "hbird_device_app_mqtt-bridge-broker/third_party/HBirdCrypto/lib/windows/release/HBirdCrypto_release.lib")
+add_library(staticlib_HBirdCrypto STATIC IMPORTED)
+set_target_properties(staticlib_HBirdCrypto PROPERTIES 
+         IMPORTED_LOCATION_RELEASE ${mosquitto_SOURCE_DIR}/../../${HBIRD_CRYPTO_LIBRARY_RELEASE})
+set_target_properties(staticlib_HBirdCrypto PROPERTIES 
+         IMPORTED_LOCATION_DEBUG ${mosquitto_SOURCE_DIR}/../../${HBIRD_CRYPTO_LIBRARY_DEBUG})
+set (MOSQ_LIBS ${MOSQ_LIBS} staticlib_HBirdCrypto)
+## end of jansson & HBird Ctypto
 
 add_executable(hbird-bridge_broker ${MOSQ_SRCS})
 target_link_libraries(hbird-bridge_broker ${MOSQ_LIBS})
